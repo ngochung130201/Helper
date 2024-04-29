@@ -19,7 +19,6 @@ namespace Helper.Services
                 {
                     response.Message = "Mail sent successfully";
                     response.Status = true;
-
                 }
                 else
                 {
