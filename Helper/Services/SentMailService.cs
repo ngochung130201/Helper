@@ -1,11 +1,9 @@
-using System.Reflection.Metadata;
-using System.Text.Json;
-using Helper;
 using Helper.Models;
 using Helper.Services.interfaces;
 using MailKit.Net.Smtp;
 using MimeKit;
 using MimeKit.Text;
+using System.Text.Json;
 
 namespace Helper.Services
 {
@@ -21,6 +19,7 @@ namespace Helper.Services
                 {
                     response.Message = "Mail sent successfully";
                     response.Status = true;
+
                 }
                 else
                 {
@@ -36,16 +35,20 @@ namespace Helper.Services
             return response;
         }
 
-        public Task<ApiResponseModel> SendMailOtpAsync(MailAccountModel mailAccount, SentMailModel sentMail, bool autoGenerateOpt)
+        public async Task<ApiResponseModel> SendMailOtpAsync(MailAccountModel mailAccount, SentMailModel sentMail, bool autoGenerateOpt)
         {
+            var otp = OTP.GenerateOTP(6);
             if (autoGenerateOpt)
             {
-
-                var otp = OTP.GenerateOTP(6);
                 sentMail.Body = sentMail.Body?.Replace("{{otp}}", $"{otp}");
+
+            }
+            var response = await SendMailAsync(mailAccount, sentMail);
+            if (response.Status == true)
+            {
                 OTP.SaveOtpToJsonFile(otp: otp, email: sentMail.To, expiredAt: DateTime.Now.AddMinutes(5));
             }
-            return SendMailAsync(mailAccount, sentMail);
+            return response;
         }
         public async Task<bool> HelperSendMail(MailAccountModel mailAccount, SentMailModel sentMail)
         {
@@ -82,7 +85,7 @@ namespace Helper.Services
 
         public ApiResponseModel CheckOtp(string otp, string email, DateTime now)
         {
-            var otps = JsonSerializer.Deserialize<List<OtpModel>>(File.ReadAllText(Contains.PathOtp));
+            var otps = JsonSerializer.Deserialize<List<OtpModel>>(System.IO.File.ReadAllText(Contains.PathOtp));
             if (otps == null)
             {
                 return new ApiResponseModel
@@ -91,12 +94,12 @@ namespace Helper.Services
                     Status = false
                 };
             }
-            var otpModel = otps.Find(x => x.Email == email && x.Otp == otp && x.ExpiredAt > now && x.IsUsed == false);
+            var otpModel = otps.OrderByDescending(x => x.ExpiredAt).FirstOrDefault(x => x.Email == email && x.Otp == otp && x.ExpiredAt > now && x.IsUsed == false);
             if (otpModel != null)
             {
                 otpModel.IsUsed = true;
                 var otpsJson = JsonSerializer.Serialize(otps);
-                File.WriteAllText(Contains.PathOtp, otpsJson);
+                System.IO.File.WriteAllText(Contains.PathOtp, otpsJson);
                 return new ApiResponseModel
                 {
                     Message = "OTP is valid",

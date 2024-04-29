@@ -1,9 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using System.Threading.Tasks;
 using Helper.Models;
+using System.Text.Json;
 
 namespace Helper
 {
@@ -37,11 +33,24 @@ namespace Helper
                 IsUsed = false
             };
             // save otp to json file
-            var otps = new List<OtpModel>();
-            otps.Add(otpModel);
-            var otpsJson = JsonSerializer.Serialize(otps);
-            // otps from folder Assets
-            System.IO.File.WriteAllText(Contains.PathOtp, otpsJson);
+
+            var otps = JsonSerializer.Deserialize<List<OtpModel>>(File.ReadAllText(Contains.PathOtp));
+            if (otps == null && !otp.Any())
+            {
+                var otpsNew = new List<OtpModel>();
+                otpsNew.Add(otpModel);
+                var otpsJson = JsonSerializer.Serialize(otpsNew);
+                System.IO.File.WriteAllText(Contains.PathOtp, otpsJson);
+            }
+            else
+            {
+                var otpsNew = new List<OtpModel>();
+                otpsNew.Add(otpModel);
+                otpsNew.AddRange(otps);
+                var otpsJson = JsonSerializer.Serialize(otpsNew);
+                System.IO.File.WriteAllText(Contains.PathOtp, otpsJson);
+            }
+
         }
     }
 }
