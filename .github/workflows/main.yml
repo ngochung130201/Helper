@@ -1,0 +1,56 @@
+name: .NET Core CI and Pull Request Validation
+
+on:
+  push:
+    branches:
+      - main  # or your main branch name
+  pull_request:
+    branches:
+      - main  # or your main branch name
+    types: [opened, edited]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+      
+    - name: Setup .NET Core SDK
+      uses: actions/setup-dotnet@v1
+      with:
+        dotnet-version: 3.1  # or the version you're using
+        
+    - name: Restore dependencies
+      run: dotnet restore
+      
+    - name: Build
+      run: dotnet build --configuration Release
+      
+    - name: Test
+      run: dotnet test --configuration Release --no-build
+      
+  validate_pull_request:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check PR Title
+      id: check_title
+      run: |
+        title=$(jq -r '.pull_request.title' "$GITHUB_EVENT_PATH")
+        pattern="^([A-Z][a-z]* )+\#[0-9]+$"  # Example pattern: Title #123
+        if [[ ! $title =~ $pattern ]]; then
+          echo "Invalid PR title format. Please follow the format: Title #issue_number"
+          exit 1
+        fi
+
+    - name: Check PR Author
+      id: check_author
+      run: |
+        author=$(jq -r '.pull_request.user.login' "$GITHUB_EVENT_PATH")
+        allowed_users=("ngochung130201")  # Add allowed usernames here
+        if [[ ! " ${allowed_users[@]} " =~ " $author " ]]; then
+          echo "Unauthorized user. Only specific users are allowed to open pull requests."
+          exit 1
+        fi
