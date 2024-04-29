@@ -46,7 +46,7 @@ jobs:
       id: check_author
       run: |
         author=$(jq -r '.pull_request.user.login' "$GITHUB_EVENT_PATH")
-        allowed_users=("username1" "username2" "username3")  # Add allowed usernames here
+        allowed_users=("ngochung130201")  # Add allowed usernames here
         if [[ ! " ${allowed_users[@]} " =~ " $author " ]]; then
           echo "Unauthorized user. Only specific users are allowed to open pull requests."
           exit 1
